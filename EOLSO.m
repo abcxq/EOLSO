@@ -42,7 +42,7 @@ for t = 1:Max_iter
     DOBL_SO_best(t,:) = Xfood;  
     
     % Elite opposite learning  
-    if mod(t, round(Max_iter/50)) == 0  
+    if mod(t, round(Max_iter/350)) == 0  
         [Xm, fitness_m] = Elite_Opposite(Xm, dim, Nm, @(x) fobj_RC_R0(x, U, I, ocv, R0, model_RC));  
         [Xf, fitness_f] = Elite_Opposite(Xf, dim, Nf, @(x) fobj_RC_R0(x, U, I, ocv, R0, model_RC));  
     end  
@@ -158,9 +158,6 @@ for t = 1:Max_iter
     % Record convergence  
     Convergence_curve(t) = min(Ybest1, Ybest2);  
     
-    % Apply HPO_add  
-    [Xbest_m, fitnessBest_m, Xm, fitness_m] = HPO_add(Xbest_m, fitnessBest_m, t, Max_iter, Nm, dim, Xm, fitness_m, lb, ub, @(x) fobj_RC_R0(x, U, I, ocv, R0, model_RC));  
-    [Xbest_f, fitnessBest_f, Xf, fitness_f] = HPO_add(Xbest_f, fitnessBest_f, t, Max_iter, Nf, dim, Xf, fitness_f, lb, ub, @(x) fobj_RC_R0(x, U, I, ocv, R0, model_RC));  
     
     % Update global best  
     if fitnessBest_m < fitnessBest_f  
@@ -172,7 +169,7 @@ for t = 1:Max_iter
     end  
     
     % Display iteration info  
-    %disp(['DOBL_SO iteration ' num2str(t) ', best fitness: ' num2str(GYbest)]);  
+    %disp(['EOLSO iteration ' num2str(t) ', best fitness: ' num2str(GYbest)]);  
 end  
 
 Alpha_pos = Xfood;  
@@ -209,46 +206,4 @@ function [SalpPositions,SalpFitness]=Elite_Opposite(SalpPositions,dim,N,fobj)
     SalpFitness=total_Fitness(index(1:N));
 end
 
-function [Target,TargetScore,HPpos,HPposFitness]=HPO_add...
-    (Target,TargetScore,it,MaxIt,nPop,dim,HPpos,HPposFitness,lb,ub,fobj)
-B = 0.1;
-c = 1 - it*((0.98)/MaxIt);   % Update C Parameter
-kbest=round(nPop*c);         % Update kbest
-if kbest==0
-    kbest=1;
-end
-for i = 1:nPop
-    r1=rand(1,dim)<c;
-    r2=rand;
-    r3=rand(1,dim);
-    idx=(r1==0);
-    z=r2.*idx+r3.*~idx;
-    
-    if rand<B
-        xi=mean(HPpos);
-        dist = pdist2(xi,HPpos);
-        [~,idxsortdist]=sort(dist);
-        SI=HPpos(idxsortdist(kbest),:);
-        HPpos(i,:) =HPpos(i,:)+0.5*((2*(c)*z.*SI-HPpos(i,:))+(2*(1-c)*z.*xi-HPpos(i,:)));
-    else
-        for j=1:dim
-            rr=-1+2*z(j);
-            HPpos(i,j)= 2*z(j)*cos(2*pi*rr)*(Target(j)-HPpos(i,j))+Target(j);
-            
-        end
-    end
-    HPpos(i,:) = min(max(HPpos(i,:),lb),ub);
-    % Evaluation
-    HPposFitness(i) = fobj(HPpos(i,:));
-    % Update Target
-    if HPposFitness(i)<TargetScore
-        Target = HPpos(i,:);
-        TargetScore = HPposFitness(i);
-    end
-    [~,indx]=min((HPposFitness));
-    if min(HPposFitness)<Target
-        TargetScore=HPposFitness(indx);
-        Target=HPpos(indx,:);
-    end
-end
-end
+
